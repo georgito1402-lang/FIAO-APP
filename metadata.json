@@ -1,0 +1,6 @@
+{
+  "name": "FIAO - Ventas y Fiados",
+  "description": "Control de ventas, fiados, inventario, doble moneda ($/Bs) y asistente financiero FIAO IA para abastos y bodegas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

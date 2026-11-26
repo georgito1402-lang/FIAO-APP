@@ -1,0 +1,176 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny — blocks root /tiendas enumeration too)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidStoreCode(code) {
+      return code is string && code.size() >= 4 && code.size() <= 32 && code.matches('^[A-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Helpers (Anti-Update-Gap) ---
+
+    function isValidCliente(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.phone is string && data.phone.size() <= 40 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidProducto(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.priceCents is int && data.priceCents > 0 && data.priceCents <= 1000000000 &&
+             data.costCents is int && data.costCents >= 0 && data.costCents <= 1000000000 &&
+             data.stockQuantity is int && data.stockQuantity >= 0 && data.stockQuantity <= 1000000 &&
+             data.unlimitedStock is bool &&
+             data.category in ['Comidas', 'Bebidas', 'Dulces'] &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 20 &&
+             data.active is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMovimiento(data) {
+      return (!('customerId' in data) || (data.customerId is string && isValidId(data.customerId))) &&
+             data.type in ['SALE', 'CREDIT', 'PAYMENT', 'EXPENSE'] &&
+             data.totalCents is int && data.totalCents > 0 && data.totalCents <= 1000000000 &&
+             data.paymentMethod is string && data.paymentMethod.size() <= 60 &&
+             data.note is string && data.note.size() <= 500 &&
+             (!('photoPath' in data) || (data.photoPath is string && data.photoPath.size() <= 1000)) &&
+             (!('dueDateMillis' in data) || (data.dueDateMillis is int && data.dueDateMillis >= 0)) &&
+             data.rateUsed is number && data.rateUsed > 0 && data.rateUsed <= 100000000 &&
+             data.activityAtMillis is int && data.activityAtMillis > 0 &&
+             data.items is list && data.items.size() <= 50 &&
+             (data.items.size() == 0 || (
+               data.items[0] is map &&
+               data.items[0].productName is string &&
+               data.items[0].productName.size() <= 120 &&
+               data.items[0].unitPriceCents is int &&
+               data.items[0].quantity is int &&
+               data.items[0].subtotalCents is int
+             )) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidTiendaConfig(data) {
+      return isValidStoreCode(data.storeCode) &&
+             data.exchangeRate is number && data.exchangeRate > 0 && data.exchangeRate <= 100000000 &&
+             data.rateLabel is string && data.rateLabel.size() >= 1 && data.rateLabel.size() <= 40 &&
+             data.rateUpdatedAtMillis is int && data.rateUpdatedAtMillis >= 0 &&
+             data.businessName is string && data.businessName.size() >= 1 && data.businessName.size() <= 120 &&
+             data.seededDemo is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // --- Store-Code Scoped Subcollections ---
+
+    match /tiendas/{codigoTienda}/clientes/{clienteId} {
+      allow get: if isValidStoreCode(codigoTienda) && isValidId(clienteId);
+
+      allow list: if isValidStoreCode(codigoTienda);
+
+      allow create: if isValidStoreCode(codigoTienda) &&
+                       isValidId(clienteId) &&
+                       incoming().keys().hasAll(['name', 'phone', 'notes', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'phone', 'notes', 'createdAt', 'updatedAt']) &&
+                       isValidCliente(incoming());
+
+      allow update: if isValidStoreCode(codigoTienda) &&
+                       isValidId(clienteId) &&
+                       isValidCliente(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'notes', 'updatedAt']);
+
+      allow delete: if isValidStoreCode(codigoTienda) && isValidId(clienteId);
+    }
+
+    match /tiendas/{codigoTienda}/inventario/{productId} {
+      allow get: if isValidStoreCode(codigoTienda) && isValidId(productId);
+
+      allow list: if isValidStoreCode(codigoTienda);
+
+      allow create: if isValidStoreCode(codigoTienda) &&
+                       isValidId(productId) &&
+                       incoming().keys().hasAll(['name', 'priceCents', 'costCents', 'stockQuantity', 'unlimitedStock', 'category', 'unit', 'active', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'priceCents', 'costCents', 'stockQuantity', 'unlimitedStock', 'category', 'unit', 'active', 'createdAt', 'updatedAt']) &&
+                       isValidProducto(incoming());
+
+      allow update: if isValidStoreCode(codigoTienda) &&
+                       isValidId(productId) &&
+                       isValidProducto(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'priceCents', 'costCents', 'stockQuantity', 'unlimitedStock', 'category', 'unit', 'active', 'updatedAt']);
+
+      allow delete: if isValidStoreCode(codigoTienda) && isValidId(productId);
+    }
+
+    match /tiendas/{codigoTienda}/movimientos/{movementId} {
+      allow get: if isValidStoreCode(codigoTienda) && isValidId(movementId);
+
+      allow list: if isValidStoreCode(codigoTienda);
+
+      allow create: if isValidStoreCode(codigoTienda) &&
+                       isValidId(movementId) &&
+                       incoming().keys().hasAll(['type', 'totalCents', 'paymentMethod', 'note', 'rateUsed', 'activityAtMillis', 'items', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['customerId', 'type', 'totalCents', 'paymentMethod', 'note', 'photoPath', 'dueDateMillis', 'rateUsed', 'activityAtMillis', 'items', 'createdAt', 'updatedAt']) &&
+                       isValidMovimiento(incoming()) &&
+                       (!('customerId' in incoming()) ||
+                        exists(/databases/$(database)/documents/tiendas/$(codigoTienda)/clientes/$(incoming().customerId)) ||
+                        existsAfter(/databases/$(database)/documents/tiendas/$(codigoTienda)/clientes/$(incoming().customerId)));
+
+      allow update: if isValidStoreCode(codigoTienda) &&
+                       isValidId(movementId) &&
+                       isValidMovimiento(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['note', 'dueDateMillis', 'updatedAt']);
+
+      allow delete: if isValidStoreCode(codigoTienda) && isValidId(movementId);
+    }
+
+    match /tiendas/{codigoTienda}/configuracion/{configId} {
+      allow get: if isValidStoreCode(codigoTienda) &&
+                    isValidId(configId) &&
+                    configId == 'tienda';
+
+      allow create: if isValidStoreCode(codigoTienda) &&
+                       configId == 'tienda' &&
+                       incoming().keys().hasAll(['storeCode', 'exchangeRate', 'rateLabel', 'rateUpdatedAtMillis', 'businessName', 'seededDemo', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['storeCode', 'exchangeRate', 'rateLabel', 'rateUpdatedAtMillis', 'businessName', 'seededDemo', 'createdAt', 'updatedAt']) &&
+                       incoming().storeCode == codigoTienda &&
+                       isValidTiendaConfig(incoming());
+
+      allow update: if isValidStoreCode(codigoTienda) &&
+                       configId == 'tienda' &&
+                       isValidTiendaConfig(incoming()) &&
+                       incoming().storeCode == existing().storeCode &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'exchangeRate', 'rateLabel', 'rateUpdatedAtMillis', 'businessName',
+                         'seededDemo', 'updatedAt'
+                       ]);
+
+      allow delete: if isValidStoreCode(codigoTienda) &&
+                       configId == 'tienda';
+    }
+  }
+}

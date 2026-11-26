@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">FIAO - Ventas y Fiados</string>
+    <string name="app_short_name">FIAO</string>
+
+    <!-- Navegación -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_credits">Fiados</string>
+    <string name="nav_movements">Movimientos</string>
+    <string name="nav_inventory">Inventario</string>
+
+    <!-- Inicio / Cuadre del Día -->
+    <string name="home_title">Cuadre del Día</string>
+    <string name="sold_today_label">Vendido hoy</string>
+    <string name="spent_today_label">Gastado hoy</string>
+    <string name="receivable_label">Por cobrar</string>
+    <string name="recent_movements_title">Últimos movimientos de hoy</string>
+
+    <!-- Semáforo de Deudas -->
+    <string name="status_settled">Al día</string>
+    <string name="status_recent_debt">Menos de 15 días</string>
+    <string name="status_overdue_debt">Más de 15 días</string>
+
+    <!-- Registro Rápido -->
+    <string name="quick_register_title">Registro rápido</string>
+    <string name="tab_sale">Venta</string>
+    <string name="tab_credit">Fiado</string>
+    <string name="tab_expense">Gasto</string>
+
+    <!-- Inventario -->
+    <string name="inventory_title">Inventario</string>
+    <string name="add_product">Nuevo producto</string>
+    <string name="edit_product">Editar producto</string>
+
+    <!-- Comprobante Digital -->
+    <string name="receipt_title">Comprobante Digital</string>
+    <string name="send_whatsapp">Enviar por WhatsApp</string>
+</resources>

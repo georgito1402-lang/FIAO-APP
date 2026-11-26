@@ -1,0 +1,262 @@
+{
+  "entities": {
+    "Cliente": {
+      "title": "Cliente",
+      "description": "Cliente del abasto o bodega con historial de fiados y abonos.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre completo del cliente (1..120 chars)."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Teléfono o WhatsApp de contacto (0..40 chars)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Referencia o nota del cliente (0..500 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["name", "phone", "notes", "createdAt", "updatedAt"]
+    },
+    "Producto": {
+      "title": "Producto",
+      "description": "Producto del inventario con soporte para stock numérico o cantidad indefinida.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre del producto (1..120 chars)."
+        },
+        "priceCents": {
+          "type": "integer",
+          "description": "Precio de venta en centavos USD (> 0)."
+        },
+        "costCents": {
+          "type": "integer",
+          "description": "Costo unitario en centavos USD (>= 0)."
+        },
+        "stockQuantity": {
+          "type": "integer",
+          "description": "Cantidad disponible (>= 0)."
+        },
+        "unlimitedStock": {
+          "type": "boolean",
+          "description": "Si es true, siempre disponible (∞)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Comidas", "Bebidas", "Dulces"],
+          "description": "Categoría del inventario."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unidad de venta (u, kg, lt, paq, caja)."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indica si el producto está activo en inventario."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "name",
+        "priceCents",
+        "costCents",
+        "stockQuantity",
+        "unlimitedStock",
+        "category",
+        "unit",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MovimientoItem": {
+      "title": "MovimientoItem",
+      "description": "Ítem vendido o fiado dentro de un movimiento.",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "ID opcional del producto en inventario."
+        },
+        "productName": {
+          "type": "string",
+          "description": "Nombre del producto."
+        },
+        "unitPriceCents": {
+          "type": "integer",
+          "description": "Precio unitario en centavos USD."
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Cantidad vendida/fiada."
+        },
+        "subtotalCents": {
+          "type": "integer",
+          "description": "Subtotal en centavos USD."
+        }
+      },
+      "required": ["productName", "unitPriceCents", "quantity", "subtotalCents"]
+    },
+    "Movimiento": {
+      "title": "Movimiento",
+      "description": "Venta, fiado, abono o gasto registrado en el cuadre diario.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "ID opcional del cliente para fiados y abonos."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["SALE", "CREDIT", "PAYMENT", "EXPENSE"],
+          "description": "Tipo de movimiento."
+        },
+        "totalCents": {
+          "type": "integer",
+          "description": "Monto total en centavos USD (> 0)."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Método de pago (Efectivo $, Efectivo Bs, Pago Móvil, Punto, Transferencia)."
+        },
+        "note": {
+          "type": "string",
+          "description": "Nota o concepto."
+        },
+        "photoPath": {
+          "type": "string",
+          "description": "Ruta opcional del soporte fotográfico."
+        },
+        "dueDateMillis": {
+          "type": "integer",
+          "description": "Fecha límite de pago opcional (epoch millis)."
+        },
+        "rateUsed": {
+          "type": "number",
+          "description": "Tasa Bs/USD usada al registrar el movimiento."
+        },
+        "activityAtMillis": {
+          "type": "integer",
+          "description": "Marca temporal de la operación para histórico/cuadre del día."
+        },
+        "items": {
+          "type": "array",
+          "description": "Lista acotada de productos (<= 50) incluidos en el movimiento."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "type",
+        "totalCents",
+        "paymentMethod",
+        "note",
+        "rateUsed",
+        "activityAtMillis",
+        "items",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TiendaConfig": {
+      "title": "TiendaConfig",
+      "description": "Configuración compartida del negocio identificada por su Código de Tienda.",
+      "type": "object",
+      "properties": {
+        "storeCode": {
+          "type": "string",
+          "description": "Código de Tienda compartido (4..32 chars)."
+        },
+        "exchangeRate": {
+          "type": "number",
+          "description": "Tasa de cambio Bs por 1 USD."
+        },
+        "rateLabel": {
+          "type": "string",
+          "description": "Etiqueta de la tasa (ej. Tasa BCV)."
+        },
+        "rateUpdatedAtMillis": {
+          "type": "integer",
+          "description": "Epoch millis de la última actualización de tasa."
+        },
+        "businessName": {
+          "type": "string",
+          "description": "Nombre visible del negocio."
+        },
+        "seededDemo": {
+          "type": "boolean",
+          "description": "Evita duplicar los datos iniciales de demostración."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp del servidor (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "storeCode",
+        "exchangeRate",
+        "rateLabel",
+        "rateUpdatedAtMillis",
+        "businessName",
+        "seededDemo",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/tiendas/{codigoTienda}/clientes/{clienteId}": {
+      "schema": { "$ref": "#/entities/Cliente" },
+      "description": "Colección compartida de clientes bajo el Código de Tienda."
+    },
+    "/tiendas/{codigoTienda}/inventario/{productId}": {
+      "schema": { "$ref": "#/entities/Producto" },
+      "description": "Colección compartida de inventario bajo el Código de Tienda."
+    },
+    "/tiendas/{codigoTienda}/movimientos/{movementId}": {
+      "schema": { "$ref": "#/entities/Movimiento" },
+      "description": "Colección compartida de movimientos bajo el Código de Tienda."
+    },
+    "/tiendas/{codigoTienda}/configuracion/{configId}": {
+      "schema": { "$ref": "#/entities/TiendaConfig" },
+      "description": "Documento tienda con la tasa del día y nombre del negocio bajo el Código de Tienda."
+    }
+  }
+}
